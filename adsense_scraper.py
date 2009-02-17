@@ -1,8 +1,14 @@
 #!/usr/bin/env python
+"""Scrapes Google AdSense data with Python using Twill
+
+Current canonical location of this module is here:
+http://github.com/etrepum/adsense_scraper/tree/master
+"""
 
 # requires html5lib, twill
 import sys
 import pprint
+import decimal
 from cStringIO import StringIO
 from xml.etree import cElementTree
 
@@ -23,27 +29,76 @@ Try this::
 """
     raise SystemExit()
 
-SERVICE_LOGIN_BOX = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
-OVERVIEW_URL = "https://www.google.com/adsense/report/overview?timePeriod="
-TIME_PERIODS = ['today', 'yesterday', 'thismonth', 'lastmonth', 'sincelastpayment']
+SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
 
-ETREE_PARSER = html5lib.HTMLParser(tree=treebuilders.getTreeBuilder("etree", cElementTree))
+OVERVIEW_URL = "https://www.google.com/adsense/report/overview?timePeriod="
+
+TIME_PERIODS = [
+    'today',
+    'yesterday',
+    'thismonth',
+    'lastmonth',
+    'sincelastpayment',
+]
+
+ETREE_PARSER = html5lib.HTMLParser(
+    tree=treebuilders.getTreeBuilder("etree", cElementTree))
+
+
+def parse_decimal(s):
+    """Return an int or decimal.Decimal given a human-readable number
+
+    """
+    stripped = s.replace(',', '').rstrip('%').lstrip('$')
+    try:
+        return int(stripped)
+    except ValueError:
+        return decimal.Decimal(stripped)
+
 
 def parse_summary_table(doc):
+    """
+    Parse the etree doc for summarytable, returns::
+
+        [{'channel': unicode,
+          'impressions': int,
+          'clicks': int,
+          'ctr': decimal.Decimal,
+          'ecpm': decimal.Decimal,
+          'earnings': decimal.Decimal}]
+
+    """
     for t in doc.findall('.//table'):
         if t.attrib.get('id') == 'summarytable':
             break
     else:
         raise ValueError("summary table not found")
 
-    return [
-        [c.text or '' for c in row.findall('td')]
-        for row in t.findall('.//tr')
-    ]
+    res = []
+    FIELDS = ['channel', 'impressions', 'clicks', 'ctr', 'ecpm', 'earnings']
+    for row in t.findall('.//tr')[1:]:
+        celltext = [(c.text or '').strip() for c in row.findall('td')]
+        if len(celltext) != 6:
+            continue
+        try:
+            value_cols = map(parse_decimal, celltext[1:])
+        except decimal.InvalidOperation:
+            continue
+        res.append(dict(zip(FIELDS, [celltext[0]] + value_cols)))
+
+    return res
+
 
 def get_adsense(login, password):
+    """Returns a twill browser instance after having logged in to AdSense
+    with *login* and *password*.
+
+    The returned browser will have all of the appropriate cookies set but may
+    not be at the exact page that you want data from.
+
+    """
     b = twill.commands.get_browser()
-    b.go(SERVICE_LOGIN_BOX)
+    b.go(SERVICE_LOGIN_BOX_URL)
     form = b.get_all_forms()[0]
     form['Email'] = login
     form['Passwd'] = password
@@ -51,10 +106,19 @@ def get_adsense(login, password):
     b.go(b.find_link('Click here to continue').url)
     return b
 
+
 def get_time_period(b, period):
+    """Returns the parsed summarytable for the time period *period* given
+    *b* which should be the result of a get_adsense call. *period* must be
+    a time period that AdSense supports:
+    ``'today'``, ``'yesterday'``, ``'thismonth'``,
+    ``'lastmonth'``, ``'sincelastpayment'``.
+
+    """
     b.go(OVERVIEW_URL + period)
     doc = ETREE_PARSER.parse(b.get_html())
     return parse_summary_table(doc)
+
 
 def main():
     try:

@@ -3,8 +3,17 @@
 
 Current canonical location of this module is here:
 http://github.com/etrepum/adsense_scraper/tree/master
-"""
 
+
+Usage::
+
+    from adsense_scraper import get_adsense, get_time_period
+    b = get_adsense('YOUR_ADSENSE_LOGIN', 'YOUR_ADSENSE_PASSWORD')
+    rows = get_time_period(b, 'yesterday')
+    # The summary data is always the first row with channel == ''
+    print 'I earned this much yesterday: $%(earnings)s' % rows[0]
+
+"""
 # requires html5lib, twill
 import sys
 import pprint
@@ -28,6 +37,8 @@ Try this::
     $ easy_install twill html5lib
 """
     raise SystemExit()
+
+__version__ = '0.1'
 
 SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
 

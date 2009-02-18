@@ -38,7 +38,7 @@ Try this::
 """
     raise SystemExit()
 
-__version__ = '0.1'
+__version__ = '0.2'
 
 SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
 
@@ -88,7 +88,7 @@ def parse_summary_table(doc):
     res = []
     FIELDS = ['channel', 'impressions', 'clicks', 'ctr', 'ecpm', 'earnings']
     for row in t.findall('.//tr')[1:]:
-        celltext = [(c.text or '').strip() for c in row.findall('td')]
+        celltext = [(c.text or c.findtext('a') or '').strip() for c in row.findall('td')]
         if len(celltext) != 6:
             continue
         try:
@@ -137,6 +137,7 @@ def main():
     except ValueError:
         raise SystemExit("usage: %s LOGIN PASSWORD" % (sys.argv[0],))
     twill.set_output(StringIO())
+    twill.commands.reset_browser()
     b = get_adsense(login, password)
     data = {}
     for period in TIME_PERIODS:

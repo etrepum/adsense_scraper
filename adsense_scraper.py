@@ -38,7 +38,7 @@ Try this::
 """
     raise SystemExit()
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
 

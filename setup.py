@@ -3,7 +3,7 @@
 from setuptools import setup
 #from distutils.core import setup
 
-VERSION = '0.2'
+VERSION = '0.3'
 DESCRIPTION = "Scrapes Google AdSense earnings data with Python using Twill"
 LONG_DESCRIPTION = """
 adsense_scraper is a simple module that uses Twill and html5lib to scrape

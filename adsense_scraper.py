@@ -88,7 +88,15 @@ def parse_summary_table(doc):
     res = []
     FIELDS = ['channel', 'impressions', 'clicks', 'ctr', 'ecpm', 'earnings']
     for row in t.findall('.//tr')[1:]:
-        celltext = [(c.text or c.findtext('a') or '').strip() for c in row.findall('td')]
+        celltext = []
+        for c in row.findall('td'):
+            tail = ''
+            # adsense inserts an empty span if a row has a period in it, so
+            # get the children and find the tail element to append to the text
+            if c.find('a') and c.find('a').getchildren():
+                tail = c.find('a').getchildren()[0].tail or ''
+            celltext.append('%s%s' % ((c.text or c.findtext('a') or '').strip(), tail.strip()))
+
         if len(celltext) != 6:
             continue
         try:

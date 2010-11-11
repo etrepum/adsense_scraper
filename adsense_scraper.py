@@ -38,10 +38,9 @@ Try this::
 """
     raise SystemExit()
 
-__version__ = '0.3'
+__version__ = '0.5'
 
-SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLoginBox?service=adsense&ltmpl=login&ifr=true&rm=hide&fpui=3&nui=15&alwf=true&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Flogin-box-gaiaauth&hl=en_US"
-
+SERVICE_LOGIN_BOX_URL = "https://www.google.com/accounts/ServiceLogin?service=adsense&rm=hide&fpui=3&nui=15&alwf=true&ltmpl=adsense&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fadsense%2Fgaiaauth2&followup=https%3A%2F%2Fwww.google.com%2Fadsense%2Fgaiaauth2&hl=en_US"
 OVERVIEW_URL = "https://www.google.com/adsense/report/overview?timePeriod="
 
 TIME_PERIODS = [
@@ -118,11 +117,18 @@ def get_adsense(login, password):
     """
     b = twill.commands.get_browser()
     b.go(SERVICE_LOGIN_BOX_URL)
-    form = b.get_all_forms()[0]
-    form['Email'] = login
-    form['Passwd'] = password
+    for form in b.get_all_forms():
+        try:
+            form['Email'] = login
+            form['Passwd'] = password
+        except ValueError:
+            continue
+        else:
+            break
+    else:
+        raise ValueError("Could not find login form on page")
+    b._browser.select_form(predicate=lambda f: f is form)
     b.submit()
-    b.go(b.find_link('Click here to continue').url)
     return b
 
 

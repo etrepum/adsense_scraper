@@ -22,8 +22,7 @@ from cStringIO import StringIO
 from xml.etree import cElementTree
 
 try:
-    import html5lib
-    from html5lib import treebuilders
+    from html5lib import HTMLParser
     import twill.commands
 except ImportError:
     print >>sys.stderr, """\
@@ -50,9 +49,6 @@ TIME_PERIODS = [
     'lastmonth',
     'sincelastpayment',
 ]
-
-ETREE_PARSER = html5lib.HTMLParser(
-    tree=treebuilders.getTreeBuilder("etree", cElementTree))
 
 
 def parse_decimal(s):
@@ -85,8 +81,9 @@ def parse_summary_table(doc):
         raise ValueError("summary table not found")
 
     res = []
-    FIELDS = ['channel', 'impressions', 'clicks', 'ctr', 'ecpm', 'earnings']
-    for row in t.findall('.//tr')[1:]:
+    FIELDS = ['channel', 'requests', 'responses', 'impressions',
+              'clicks', 'ctr', 'ecpm', 'earnings']
+    for row in t.findall('.//tr'):
         celltext = []
         for c in row.findall('td'):
             tail = ''
@@ -96,7 +93,7 @@ def parse_summary_table(doc):
                 tail = c.find('a').getchildren()[0].tail or ''
             celltext.append('%s%s' % ((c.text or c.findtext('a') or '').strip(), tail.strip()))
 
-        if len(celltext) != 6:
+        if len(celltext) != 8:
             continue
         try:
             value_cols = map(parse_decimal, celltext[1:])
@@ -141,7 +138,9 @@ def get_time_period(b, period):
 
     """
     b.go(OVERVIEW_URL + period)
-    doc = ETREE_PARSER.parse(b.get_html())
+    # The cElementTree treebuilder doesn't work reliably enough
+    # to use directly, so we parse and then dump into cElementTree.
+    doc = cElementTree.fromstring(HTMLParser().parse(b.get_html()).toxml())
     return parse_summary_table(doc)
 
 
